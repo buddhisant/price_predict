@@ -43,22 +43,34 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
 
         end_time = time.time()
 
+        numerator=0
+        denominator=0
+
         for iteration,datas in enumerate(dataloader,1):
 
             x = datas[0].to(device)
             y = datas[1].to(device)
-            loss, _=gru(x,y)
+            loss, output=gru(x,y)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            output=output.flatten(1)
+            y=y.flatten(1)
+
+            cur_numerator=torch.sum(utils.compute_numerator(output[:,-1],y[:,-1]))
+            cur_denominator=torch.sum(utils.compute_denominator(y[:,-1],KYDataset.label_mean))
+            numerator=(numerator*(iteration-1)*cfg.samples_per_gpu+cur_numerator)/(iteration*cfg.samples_per_gpu)
+            denominator=(denominator*(iteration-1)*cfg.samples_per_gpu+cur_denominator)/(iteration*cfg.samples_per_gpu)
 
             meters["loss"].update(loss.item())
             meters["time"].update(time.time()-end_time)
             end_time = time.time()
 
             if(local_rank==0):
-                writer.add_scalar("train/loss",loss,(epoch-1)*len(dataloader)+iteration)
+                writer.add_scalar("loss/train",loss,(epoch-1)*len(dataloader)+iteration)
+                writer.add_scalar("r2/train",1-numerator/denominator,(epoch-1)*len(dataloader)+iteration)
 
             if (iteration % 50 == 0):
                 if (local_rank == 0):
@@ -81,8 +93,8 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
         if (local_rank == 0):
             utils.save_model(gru, epoch)
             time.sleep(10)
-            test_loss=test.test(epoch,sequence_length)
-            writer.add_scalar("test/loss",test_loss,epoch)
+            test_r2=test.test(epoch,sequence_length)
+            writer.add_scalar("test/loss",test_r2,epoch)
         if (is_dist):
             utils.synchronize()
 

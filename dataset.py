@@ -30,8 +30,16 @@ class KYDataset(Dataset):
         drop_targets=["target"+str(i) for i in drop_targets]
         self.data=df.drop(drop_targets,axis=1)
 
+        self.label_mean=self.mean_label()
+
     def __len__(self):
         return len(self.data)-self.sequence_length+1
+
+    def mean_label(self):
+        label=self.data[self.target_name]
+        label=label.values
+        label=torch.tensor(label,dtype=torch.float)
+        return label.mean()
 
     def __getitem__(self, idx):
         data=self.data.iloc[idx:idx+self.sequence_length]

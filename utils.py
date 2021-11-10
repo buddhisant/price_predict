@@ -53,6 +53,12 @@ def synchronize():
         return
     dist.barrier()
 
+def compute_numerator(y_pre,y_label):
+    return (y_pre-y_label)**2
+
+def compute_denominator(y_label, mean):
+    return (y_label-mean)**2
+
 class AverageMeter():
     def __init__(self):
         self.val=0

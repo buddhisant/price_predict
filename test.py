@@ -19,6 +19,9 @@ def test(epoch,sequence_length,target=1):
     gru = gru.to(device)
     total_mse=0
     i=1
+
+    numerator = 0
+    denominator = 0
     with torch.no_grad():
         with tqdm(total=len(test_Dataset),desc=f"Epoch #{epoch}") as t:
             for datas in test_dataloader:
@@ -29,12 +32,14 @@ def test(epoch,sequence_length,target=1):
                 predict=predict.view(-1)
                 y=y.view(-1)
 
-                cur_mse=(predict[-1]-y[-1])**2
-                total_mse=(total_mse*(i-1)+cur_mse.item())/i
+                cur_numerator = torch.sum(utils.compute_numerator(predict[-1], y[-1]))
+                cur_denominator = torch.sum(utils.compute_denominator(y[:, -1], test_Dataset.label_mean))
+                numerator = (numerator * (i - 1)  + cur_numerator) /i
+                denominator = (denominator * (i - 1) + cur_denominator) / i
                 i+=1
                 t.update(1)
 
-    return total_mse
+    return 1-numerator/denominator
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="price predict")
