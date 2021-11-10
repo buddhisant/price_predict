@@ -33,7 +33,7 @@ def test(epoch,sequence_length,target=1):
                 y=y.view(-1)
 
                 cur_numerator = torch.sum(utils.compute_numerator(predict[-1], y[-1]))
-                cur_denominator = torch.sum(utils.compute_denominator(y[:, -1], test_Dataset.label_mean))
+                cur_denominator = torch.sum(utils.compute_denominator(y[-1], test_Dataset.label_mean))
                 numerator = (numerator * (i - 1)  + cur_numerator) /i
                 denominator = (denominator * (i - 1) + cur_denominator) / i
                 i+=1
