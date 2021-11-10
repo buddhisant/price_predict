@@ -14,6 +14,10 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
 def train(is_dist,start_epoch,local_rank,sequence_length):
+    if(torch.cuda.device_count()==0):
+        device=torch.device("cpu")
+    else:
+        device=torch.device("cuda:"+str(local_rank))
     if(local_rank==0):
         writer = SummaryWriter()
 
@@ -23,7 +27,7 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
     gru=model.GRU(is_train=True)
     if(start_epoch>1):
         utils.load_model(gru,start_epoch-1)
-    gru=gru.cuda()
+    gru=gru.to(device)
 
     meters={"loss":utils.AverageMeter(),"time":utils.AverageMeter()}
 
@@ -41,8 +45,8 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
 
         for iteration,datas in enumerate(dataloader,1):
 
-            x = datas[0].cuda()
-            y = datas[1].cuda()
+            x = datas[0].to(device)
+            y = datas[1].to(device)
             loss, _=gru(x,y)
 
             optimizer.zero_grad()
