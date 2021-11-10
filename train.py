@@ -94,7 +94,7 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
             utils.save_model(gru, epoch)
             time.sleep(10)
             test_r2=test.test(epoch,sequence_length)
-            writer.add_scalar("test/loss",test_r2,epoch)
+            writer.add_scalar("r2/test",test_r2,epoch)
         if (is_dist):
             utils.synchronize()
 
