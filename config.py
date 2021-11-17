@@ -1,5 +1,5 @@
 # 在训练时，每张显卡上计算的样本数量
-samples_per_gpu = 64
+samples_per_gpu = 16
 
 # 训练的epochs数量
 max_epochs = 30
@@ -18,3 +18,12 @@ archive_path="archive"
 
 # 保存checkpoint的文件名前缀
 check_prefix="gru"
+
+# resnet的深度
+resnet_depth=50
+
+# fpn channel
+fpn_channels=256
+
+# 结果放大倍率
+scale=10000

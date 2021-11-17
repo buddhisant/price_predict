@@ -3,7 +3,6 @@ import utils
 import dataset
 import argparse
 import torch
-import model
 import time
 import solver
 import test
@@ -12,6 +11,7 @@ import torch.distributed as dist
 
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from model import Regression
 
 def train(is_dist,start_epoch,local_rank,sequence_length):
     if(torch.cuda.device_count()==0):
@@ -24,18 +24,18 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
     KYDataset=dataset.KYDataset(is_train=True,sequence_length=sequence_length)
     dataloader=dataset.make_dataLoader(KYDataset,cfg.samples_per_gpu,is_dist)
 
-    gru=model.GRU(is_train=True)
+    model=Regression(is_train=True)
     if(start_epoch>1):
-        utils.load_model(gru,start_epoch-1)
-    gru=gru.to(device)
+        utils.load_model(model,start_epoch-1)
+    model=model.to(device)
 
     meters={"loss":utils.AverageMeter(),"time":utils.AverageMeter()}
 
     if(is_dist):
-        gru = torch.nn.parallel.DistributedDataParallel(gru, device_ids=[local_rank, ], output_device=local_rank,
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank, ], output_device=local_rank,
                                                           broadcast_buffers=False, find_unused_parameters=True)
-    optimizer=solver.make_optimizer(gru)
-    gru.train()
+    optimizer=solver.make_optimizer(model)
+    model.train()
 
     for epoch in range(1,cfg.max_epochs+1):
         if is_dist:
@@ -47,20 +47,20 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
         denominator=0
 
         for iteration,datas in enumerate(dataloader,1):
-
             x = datas[0].to(device)
+            x = x.permute(0, 2, 1).contiguous()
             y = datas[1].to(device)
-            loss, output=gru(x,y)
+            loss, output=model(x,y)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            output=output.flatten(1)
-            y=y.flatten(1)
+            output=output.view(-1)
+            y=y[:,-1].view(-1)
 
-            cur_numerator=torch.sum(utils.compute_numerator(output[:,-1],y[:,-1]))
-            cur_denominator=torch.sum(utils.compute_denominator(y[:,-1],KYDataset.label_mean))
+            cur_numerator=torch.sum(utils.compute_numerator(output,y))
+            cur_denominator=torch.sum(utils.compute_denominator(y,KYDataset.label_mean))
             numerator=(numerator*(iteration-1)*cfg.samples_per_gpu+cur_numerator)/(iteration*cfg.samples_per_gpu)
             denominator=(denominator*(iteration-1)*cfg.samples_per_gpu+cur_denominator)/(iteration*cfg.samples_per_gpu)
 
@@ -91,7 +91,7 @@ def train(is_dist,start_epoch,local_rank,sequence_length):
                     v.reset()
 
         if (local_rank == 0):
-            utils.save_model(gru, epoch)
+            utils.save_model(model, epoch)
             time.sleep(10)
             test_r2=test.test(epoch,sequence_length)
             writer.add_scalar("r2/test",test_r2,epoch)
@@ -103,7 +103,7 @@ def main():
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--start_epoch", type=int, default=1)
     parser.add_argument("--target",type=int,default=1)
-    parser.add_argument("--sequence_length",type=int,default=100)
+    parser.add_argument("--sequence_length",type=int,default=1024)
     parser.add_argument("--dist", action="store_true", default=False)
 
     args = parser.parse_args()

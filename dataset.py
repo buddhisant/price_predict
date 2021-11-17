@@ -9,12 +9,14 @@ root_path="/home/buddhisant/data/datafeatures"
 name1="000001.sz_intern_20200101-20210329.h5"
 
 class KYDataset(Dataset):
+    non_factor=["ChgToPreClose","Match","AskPrice1","BidPrice1","Volume","Turnover"]
+
     def __init__(self,is_train=True,target=1,sequence_length=50):
         self.is_train=is_train
         self.sequence_length=sequence_length
 
         df = pd.read_csv(os.path.join("data", "train.csv"), index_col=0)
-        df = df.drop(["target1","target2","target3"],axis=1)
+        df = df.drop(["target1","target2","target3"]+self.non_factor,axis=1)
         df = df.values
         df = torch.tensor(df,dtype=torch.float)
         self.mean=df.mean(axis=0).view(1,-1)
@@ -28,7 +30,7 @@ class KYDataset(Dataset):
         self.target_name="target"+str(target)
         drop_targets=list(set([1,2,3])-set([target]))
         drop_targets=["target"+str(i) for i in drop_targets]
-        self.data=df.drop(drop_targets,axis=1)
+        self.data=df.drop(drop_targets+self.non_factor,axis=1)
 
         self.label_mean=self.mean_label()
 
