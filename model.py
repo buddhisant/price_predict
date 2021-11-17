@@ -92,6 +92,7 @@ class Regression(nn.Module):
 
         x=x.mean(dim=-1)
         y=self.fc1(x)
+        y=y.view(-1)
 
         if self.is_train:
             label=label[:,-1]*cfg.scale
