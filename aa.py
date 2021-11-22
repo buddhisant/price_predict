@@ -2,7 +2,7 @@ import torch
 import pandas as pd
 
 
-a=torch.ones(size=[2,3,4])
-b=a.sum(dim=2)
-print(b.shape)
-print(b)
+a=torch.tensor([1,2,3,4,5])
+b=torch.ones(size=[5,1])
+c=a-b
+print(c)
