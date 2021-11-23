@@ -11,9 +11,8 @@ name1="000001.sz_intern_20200101-20210329.h5"
 class KYDataset(Dataset):
     non_factor=["ChgToPreClose","Match","AskPrice1","BidPrice1","Volume","Turnover"]
 
-    def __init__(self,is_train=True,target=1,sequence_length=50):
+    def __init__(self,is_train=True,target=1):
         self.is_train=is_train
-        self.sequence_length=sequence_length
 
         df = pd.read_csv(os.path.join("data", "train.csv"), index_col=0)
         df = df.drop(["target1","target2","target3"]+self.non_factor,axis=1)
@@ -35,7 +34,7 @@ class KYDataset(Dataset):
         self.label_mean=self.mean_label()
 
     def __len__(self):
-        return len(self.data)-self.sequence_length+1
+        return len(self.data)
 
     def mean_label(self):
         label=self.data[self.target_name]
@@ -44,13 +43,13 @@ class KYDataset(Dataset):
         return label.mean()
 
     def __getitem__(self, idx):
-        data=self.data.iloc[idx:idx+self.sequence_length]
+        data=self.data.iloc[idx]
         label=data[self.target_name]
-        data = data.drop(self.target_name, axis=1)
+        data = data.drop(self.target_name)
 
         data = data.values
         data = torch.tensor(data,dtype=torch.float)
-        label=label.values
+        # label=label.values
         label=torch.tensor(label,dtype=torch.float)
 
         data=(data-self.mean)/self.std

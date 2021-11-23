@@ -38,65 +38,63 @@ class GRU(torch.nn.Module):
         else:
             return output
 
-
 class Regression(nn.Module):
     def __init__(self,is_train=True):
         super(Regression, self).__init__()
         self.is_train=is_train
 
-        self.resnet=resNet()
+        self.conv1=nn.Conv1d(1,200,kernel_size=5,padding=2)
+        self.conv2=nn.Conv1d(200,150,kernel_size=5,padding=2)
+        self.conv3=nn.Conv1d(150,100,kernel_size=5,padding=2)
+        self.conv4=nn.Conv1d(100,60,kernel_size=3,padding=1)
+        self.conv5=nn.Conv1d(60,40,kernel_size=3,padding=1)
+        self.linear=nn.Linear(40,1)
 
-        self.fconv1=torch.nn.Conv1d(2048,cfg.fpn_channels,1,)
-        self.fconv2=torch.nn.Conv1d(cfg.fpn_channels,cfg.fpn_channels,3,padding=1)
-        self.conv1=torch.nn.Conv1d(cfg.fpn_channels,cfg.fpn_channels,3,padding=1,dilation=2)
-        self.gn1 = torch.nn.GroupNorm(num_channels=cfg.fpn_channels, num_groups=32)
-        self.conv2=torch.nn.Conv1d(cfg.fpn_channels,cfg.fpn_channels,3,padding=1,dilation=2)
-        self.gn2 = torch.nn.GroupNorm(num_channels=cfg.fpn_channels, num_groups=32)
-        self.conv3=torch.nn.Conv1d(cfg.fpn_channels,cfg.fpn_channels,3,padding=1,dilation=2)
-        self.gn3 = torch.nn.GroupNorm(num_channels=cfg.fpn_channels, num_groups=32)
-        self.conv4=torch.nn.Conv1d(cfg.fpn_channels,cfg.fpn_channels,3,padding=1,dilation=2)
-        self.gn4 = torch.nn.GroupNorm(num_channels=cfg.fpn_channels, num_groups=32)
+        self.maxpool=nn.MaxPool1d(kernel_size=2,padding=1)
+        self.maxpool0=nn.MaxPool1d(kernel_size=2)
+        self.avgpool=nn.AvgPool1d(kernel_size=2,)
+        self.tanh=nn.Tanh()
+        self.act=self.tanh
 
-        self.fc1 = torch.nn.Linear(cfg.fpn_channels,1)
+        self.relu=nn.LeakyReLU(negative_slope=0.01,inplace=True)
+        self.dropout=nn.Dropout(p=0.1,inplace=False)
+
         self.mse=torch.nn.MSELoss()
 
         for m in self.modules():
             if(isinstance(m, torch.nn.Conv1d)):
-                torch.nn.init.normal_(m.weight, mean=0.0, std=0.01)
+                torch.nn.init.orthogonal_(m.weight)
                 if (hasattr(m, "bias") and m.bias is not None):
                     torch.nn.init.constant_(m.bias, 0)
-            elif (isinstance(m, torch.nn.GroupNorm)):
-                torch.nn.init.constant_(m.weight, 1)
+            elif (isinstance(m, torch.nn.Linear)):
+                torch.nn.init.orthogonal_(m.weight)
                 torch.nn.init.constant_(m.bias, 0)
 
-    def forward(self,input,label):
-        x=self.resnet(input)
-        x=self.fconv1(x)
-        x=self.fconv2(x)
+    def forward(self,x,label):
+        x = self.act(self.dropout(self.conv1(x)))
+        x = self.maxpool(x)
 
-        x=self.conv1(x)
-        x=self.gn1(x)
-        x.relu_()
+        x = self.act(self.dropout(self.conv2(x)))
+        x = self.maxpool(x)
 
-        x = self.conv2(x)
-        x = self.gn2(x)
-        x.relu_()
+        x = self.act(self.dropout(self.conv3(x)))
+        x = self.maxpool(x)
 
-        x = self.conv3(x)
-        x = self.gn3(x)
-        x.relu_()
+        x = self.act(self.dropout(self.conv4(x)))
+        x = self.maxpool(x)
 
-        x = self.conv4(x)
-        x = self.gn4(x)
-        x.relu_()
+        x = self.act(self.dropout(self.conv5(x)))
 
-        x=x.mean(dim=-1)
-        y=self.fc1(x)
+        x=x.mean(axis=-1)
+        x=self.linear(x)
+        y=self.act(x)
+
         y=y.view(-1)
 
         if self.is_train:
-            label=label[:,-1]*cfg.scale
+            label=label*cfg.scale
             loss=self.mse(label,y)
             return loss, y/cfg.scale
 
         return y/cfg.scale
+

@@ -1,11 +1,11 @@
 # 在训练时，每张显卡上计算的样本数量
-samples_per_gpu = 64
+samples_per_gpu = 128
 
 # 训练的epochs数量
 max_epochs = 30
 
 # 学习率
-lr=0.01
+lr=0.0005
 
 # 基础weight_decay率
 weight_decay=0.0001
@@ -17,13 +17,7 @@ momentum=0.9
 archive_path="archive"
 
 # 保存checkpoint的文件名前缀
-check_prefix="gru"
-
-# resnet的深度
-resnet_depth=50
-
-# fpn channel
-fpn_channels=256
+check_prefix="cnn"
 
 # 结果放大倍率
-scale=10000
+scale=1000
