@@ -13,15 +13,15 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from model import Regression
 
-def train(is_dist,start_epoch,local_rank):
+def train(is_dist,start_epoch,local_rank,target=1,stack=1):
     if(torch.cuda.device_count()==0):
         device=torch.device("cpu")
     else:
         device=torch.device("cuda:"+str(local_rank))
     if(local_rank==0):
-        writer = SummaryWriter()
+        writer = SummaryWriter(log_dir="runs/s{}_target{}_tanh_in".format(stack,target))
 
-    KYDataset=dataset.KYDataset(is_train=True)
+    KYDataset=dataset.KYDataset(is_train=True,stack=stack,target=target)
     dataloader=dataset.make_dataLoader(KYDataset,cfg.samples_per_gpu,is_dist)
 
     model=Regression(is_train=True)
@@ -91,7 +91,7 @@ def train(is_dist,start_epoch,local_rank):
         if (local_rank == 0):
             utils.save_model(model, epoch)
             time.sleep(10)
-            test_r2=test.test(epoch)
+            test_r2=test.test(epoch,stack=stack,target=target)
             writer.add_scalar("r2/test",test_r2,epoch)
         if (is_dist):
             utils.synchronize()

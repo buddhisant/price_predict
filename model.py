@@ -44,19 +44,27 @@ class Regression(nn.Module):
         self.is_train=is_train
 
         self.conv1=nn.Conv1d(1,200,kernel_size=5,padding=2)
+        self.ln1=nn.LayerNorm([200,175])
         self.conv2=nn.Conv1d(200,150,kernel_size=5,padding=2)
+        self.ln2 = nn.LayerNorm([150,88])
         self.conv3=nn.Conv1d(150,100,kernel_size=5,padding=2)
+        self.ln3 = nn.LayerNorm([100,45])
         self.conv4=nn.Conv1d(100,60,kernel_size=3,padding=1)
+        self.ln4 = nn.LayerNorm([60,23])
         self.conv5=nn.Conv1d(60,40,kernel_size=3,padding=1)
+        self.ln5 = nn.LayerNorm([40,12])
+
         self.linear=nn.Linear(40,1)
 
         self.maxpool=nn.MaxPool1d(kernel_size=2,padding=1)
         self.maxpool0=nn.MaxPool1d(kernel_size=2)
         self.avgpool=nn.AvgPool1d(kernel_size=2,)
         self.tanh=nn.Tanh()
+        self.relu=nn.ReLU()
+        self.sigmoid=nn.Sigmoid()
         self.act=self.tanh
 
-        self.relu=nn.LeakyReLU(negative_slope=0.01,inplace=True)
+        # self.relu=nn.LeakyReLU(negative_slope=0.01,inplace=True)
         self.dropout=nn.Dropout(p=0.1,inplace=False)
 
         self.mse=torch.nn.MSELoss()
@@ -71,19 +79,19 @@ class Regression(nn.Module):
                 torch.nn.init.constant_(m.bias, 0)
 
     def forward(self,x,label):
-        x = self.act(self.dropout(self.conv1(x)))
+        x = self.act(self.ln1(self.conv1(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.dropout(self.conv2(x)))
+        x = self.act(self.ln2(self.conv2(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.dropout(self.conv3(x)))
+        x = self.act(self.ln3(self.conv3(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.dropout(self.conv4(x)))
+        x = self.act(self.ln4(self.conv4(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.dropout(self.conv5(x)))
+        x = self.act(self.ln5(self.conv5(x)))
 
         x=x.mean(axis=-1)
         x=self.linear(x)
@@ -97,4 +105,9 @@ class Regression(nn.Module):
             return loss, y/cfg.scale
 
         return y/cfg.scale
+
+if __name__=="__main__":
+    inp=torch.randn(size=[128,1,175]).cuda()
+    m=Regression().cuda()
+    out=m(inp,0)
 

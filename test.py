@@ -5,13 +5,13 @@ import argparse
 import dataset
 from tqdm import tqdm
 
-def test(epoch,target=1):
+def test(epoch,target=1,stack=1):
     if (torch.cuda.device_count() == 0):
         device = torch.device("cpu")
     else:
         device = torch.device("cuda:0")
 
-    test_Dataset = dataset.KYDataset(is_train=False)
+    test_Dataset = dataset.KYDataset(is_train=False,target=target,stack=stack)
     test_dataloader = dataset.make_dataLoader(test_Dataset,batchsize=1,is_dist=False,is_train=False)
     model = Regression(is_train=False)
     utils.load_model(model, epoch)

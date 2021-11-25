@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # columns=df.columns.values
 # print(columns)
 
-df=pd.read_csv("data/train.csv",index_col=0)
+df=pd.read_csv("data/train_1.csv", index_col=0)
 
 df=df.reset_index(drop=True)
 
