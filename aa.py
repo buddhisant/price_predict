@@ -8,5 +8,3 @@ min_l=data["target1"].min()
 
 print(max_l)
 print(min_l)
-
-
