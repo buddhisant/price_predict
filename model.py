@@ -79,19 +79,19 @@ class Regression(nn.Module):
                 torch.nn.init.constant_(m.bias, 0)
 
     def forward(self,x,label):
-        x = self.act(self.ln1(self.conv1(x)))
+        x = self.act(self.dropout(self.ln1(self.conv1(x))))
         x = self.maxpool(x)
 
-        x = self.act(self.ln2(self.conv2(x)))
+        x = self.act(self.dropout(self.ln2(self.conv2(x))))
         x = self.maxpool(x)
 
-        x = self.act(self.ln3(self.conv3(x)))
+        x = self.act(self.dropout(self.ln3(self.conv3(x))))
         x = self.maxpool(x)
 
-        x = self.act(self.ln4(self.conv4(x)))
+        x = self.act(self.dropout(self.ln4(self.conv4(x))))
         x = self.maxpool(x)
 
-        x = self.act(self.ln5(self.conv5(x)))
+        x = self.act(self.dropout(self.ln5(self.conv5(x))))
 
         x=x.mean(axis=-1)
         x=self.linear(x)
