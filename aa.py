@@ -1,14 +1,12 @@
 import torch
 from torch import nn
+import pandas as pd
+
+data=pd.read_csv("data/train_1.csv",index_col=0)
+max_l=data["target1"].max()
+min_l=data["target1"].min()
+
+print(max_l)
+print(min_l)
 
 
-m=nn.LayerNorm([2,1,2])
-n=nn.BatchNorm1d(3)
-p=nn.GroupNorm(num_groups=2,num_channels=10)
-t=nn.InstanceNorm1d(num_features=10)
-
-inp=[[[[1,1]],[[2,3]]]]
-inp=torch.tensor(inp,dtype=torch.float)
-out=m(inp)
-
-print("done")

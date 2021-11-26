@@ -38,8 +38,6 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1):
     model.train()
 
     for epoch in range(1,cfg.max_epochs+1):
-        if(epoch==2):
-            break
 
         if is_dist:
             dataloader.sampler.set_epoch(epoch)
