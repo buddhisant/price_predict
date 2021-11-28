@@ -5,7 +5,7 @@ samples_per_gpu = 128
 max_epochs = 30
 
 # 学习率
-lr=0.0005
+lr=0.001
 
 # 基础weight_decay率
 weight_decay=0.0001
@@ -21,3 +21,18 @@ check_prefix="cnn"
 
 # 结果放大倍率
 scale=1000
+
+# 分类分支，分类预测的初始得分
+class_prior_prob=0.01
+
+# focal loss中的gamma
+focal_loss_gamma = 2.0
+# focal loss中的alpha
+focal_loss_alpha = 0.25
+
+# 最大跌幅
+max_decline=-0.015
+# 最大涨幅
+max_increase=0.015
+# 分类间隔
+interval=0.001

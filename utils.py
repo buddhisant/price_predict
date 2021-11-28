@@ -1,7 +1,27 @@
 import os
 import torch
+import torch
 import config as cfg
 import torch.distributed as dist
+
+def encode(values):
+    values.clamp_(cfg.max_decline,cfg.max_increase-(1e-6))
+    label=(values-cfg.max_decline)/cfg.interval
+    label=label.int()
+    return label
+
+def decode(probability):
+    start=cfg.max_decline+cfg.interval/2
+    end=cfg.max_increase-cfg.interval/2
+    num_interval=int((cfg.max_increase-cfg.max_decline)/cfg.interval)
+    center_val=torch.linspace(start,end,num_interval,device=probability.device)
+    center_val=center_val.view(1,-1)
+
+    probability=probability.softmax(dim=1)
+    predict=probability*center_val
+    predict=predict.sum(dim=1)
+
+    return predict
 
 def mkdir(path):
     if not os.path.exists(path):
@@ -56,8 +76,37 @@ def synchronize():
 def compute_numerator(y_pre,y_label):
     return (y_pre-y_label)**2
 
-def compute_denominator(y_label, mean):
+def compute_denominator(y_label):
+    mean=y_label.mean()
     return (y_label-mean)**2
+
+def compute_r2(preidict,y):
+    numerator=compute_numerator(preidict,y).sum()
+    denominator=compute_denominator(y).sum()
+    return 1-numerator/denominator
+
+def compute_p(label_predict,y):
+    label_gt=encode(y)
+    equal=(label_predict==label_gt).int()
+    return equal.sum()/len(equal)
+
+def compute_performance(style,output,y,mode="train"):
+    performance={}
+    if(style=="Classification"):
+        value_predict = decode(output)
+        label_predict = torch.argmax(output, dim=1)
+
+        r2 = compute_r2(value_predict, y)
+        p = compute_p(label_predict, y)
+        performance[mode+"/r2"]=r2
+        performance[mode+"/p"]=p
+
+    if(style=="Regression"):
+        output=output.view(-1)
+        r2=compute_r2(output,y)
+        performance[mode+"/r2"]=r2
+
+    return performance
 
 class AverageMeter():
     def __init__(self):
@@ -77,3 +126,8 @@ class AverageMeter():
         self.sum+=val*ncount
         self.count+=ncount
         self.avg=self.sum/self.count
+
+
+if __name__=="__main__":
+    p=torch.randn(size=(2,30))
+    decode(p)

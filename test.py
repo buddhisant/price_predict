@@ -1,11 +1,14 @@
 import torch
-from model import Regression
+import p_model
 import utils
 import argparse
 import dataset
+
+import pandas as pd
+
 from tqdm import tqdm
 
-def test(epoch,target=1,stack=1):
+def test(epoch,target=1,stack=1,style="Regression"):
     if (torch.cuda.device_count() == 0):
         device = torch.device("cpu")
     else:
@@ -13,15 +16,17 @@ def test(epoch,target=1,stack=1):
 
     test_Dataset = dataset.KYDataset(is_train=False,target=target,stack=stack)
     test_dataloader = dataset.make_dataLoader(test_Dataset,batchsize=1,is_dist=False,is_train=False)
-    model = Regression(is_train=False)
+    model = getattr(p_model,style)(is_train=False)
     utils.load_model(model, epoch)
 
     model = model.to(device)
-    i=1
 
     numerator = 0
     denominator = 0
+    count=0
     model.eval()
+    predicts=[]
+    ys=[]
     with torch.no_grad():
         with tqdm(total=len(test_Dataset),desc=f"Epoch #{epoch}") as t:
             for datas in test_dataloader:
@@ -30,20 +35,25 @@ def test(epoch,target=1,stack=1):
                 y = datas[1].to(device)
                 predict = model(x, y)
 
-                predict=predict.view(-1)
+                predicts.append(predict)
+                ys.append(y)
 
-                cur_numerator = torch.sum(utils.compute_numerator(predict, y))
-                cur_denominator = torch.sum(utils.compute_denominator(y, test_Dataset.label_mean))
-                numerator = (numerator * (i - 1)  + cur_numerator) /i
-                denominator = (denominator * (i - 1) + cur_denominator) / i
-                i+=1
                 t.update(1)
+    predicts=torch.cat(predicts)
+    ys=torch.cat(ys)
 
-    return 1-numerator/denominator
+    performace=utils.compute_performance(style,predicts,ys,mode="test")
+
+    predicts=predicts.cpu()
+    ys=ys.cpu()
+
+    result=pd.DataFrame({"predict":predicts,"truth":ys})
+    result.to_csv("result.csv",index=False)
+    return performace
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="price predict")
-    parser.add_argument("--epoch", type=int, default=1)
+    parser.add_argument("--epoch", type=int, default=6)
     parser.add_argument("--target", type=int, default=1)
 
     args = parser.parse_args()

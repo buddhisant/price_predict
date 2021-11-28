@@ -5,26 +5,26 @@ import argparse
 import torch
 import time
 import solver
+import p_model
 import test
 import config as cfg
 import torch.distributed as dist
 
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from model import Regression
 
-def train(is_dist,start_epoch,local_rank,target=1,stack=1):
+def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Regression"):
     if(torch.cuda.device_count()==0):
         device=torch.device("cpu")
     else:
         device=torch.device("cuda:"+str(local_rank))
     if(local_rank==0):
-        writer = SummaryWriter(log_dir="runs/s{}_target{}_tanh_in".format(stack,target))
+        writer = SummaryWriter(log_dir="runs/s{}_target{}_relu_bn_smoothL1".format(stack,target))
 
     KYDataset=dataset.KYDataset(is_train=True,stack=stack,target=target)
     dataloader=dataset.make_dataLoader(KYDataset,cfg.samples_per_gpu,is_dist)
 
-    model=Regression(is_train=True)
+    model=getattr(p_model,style)(is_train=True)
     if(start_epoch>1):
         utils.load_model(model,start_epoch-1)
     model=model.to(device)
@@ -47,7 +47,6 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1):
         for iteration,datas in enumerate(dataloader,1):
 
             x = datas[0].to(device)
-            # x = x.permute(0, 2, 1).contiguous()
             y = datas[1].to(device)
             loss, output=model(x,y)
 
@@ -55,10 +54,7 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1):
             loss.backward()
             optimizer.step()
 
-            output=output.view(-1)
-
-            cur_numerator=torch.sum(utils.compute_numerator(output,y))
-            cur_denominator=torch.sum(utils.compute_denominator(y,KYDataset.label_mean))
+            performance=utils.compute_performance(style,output,y)
 
             meters["loss"].update(loss.item())
             meters["time"].update(time.time()-end_time)
@@ -66,7 +62,8 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1):
 
             if(local_rank==0):
                 writer.add_scalar("loss/train",loss,(epoch-1)*len(dataloader)+iteration)
-                writer.add_scalar("r2/train",1-cur_numerator/cur_denominator,(epoch-1)*len(dataloader)+iteration)
+                for k in performance:
+                    writer.add_scalar(k,performance[k].item(),(epoch-1)*len(dataloader)+iteration)
 
             if (iteration % 50 == 0):
                 if (local_rank == 0):
@@ -89,8 +86,9 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1):
         if (local_rank == 0):
             utils.save_model(model, epoch)
             time.sleep(10)
-            test_r2=test.test(epoch,stack=stack,target=target)
-            writer.add_scalar("r2/test",test_r2,epoch)
+            # performance=test.test(epoch,stack=stack,target=target)
+            # for k in performance:
+            #     writer.add_scalar(k, performance[k].item(), epoch)
         if (is_dist):
             utils.synchronize()
 
@@ -99,6 +97,7 @@ def main():
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--start_epoch", type=int, default=1)
     parser.add_argument("--target",type=int,default=1)
+    parser.add_argument("--style",type=str,default="Classification")
     parser.add_argument("--dist", action="store_true", default=False)
 
     args = parser.parse_args()
