@@ -5,9 +5,13 @@ import config as cfg
 import torch.distributed as dist
 
 def encode(values):
-    values.clamp_(cfg.max_decline,cfg.max_increase-(1e-6))
-    label=(values-cfg.max_decline)/cfg.interval
-    label=label.int()
+    label = (values - cfg.max_decline) / cfg.interval + 1
+    label = label.int()
+    num_classes = int((cfg.max_increase - cfg.max_decline) / cfg.interval) + 2
+
+    label[values == 0] = num_classes
+    label[values < cfg.max_decline]=0
+    label[values>cfg.max_increase]=num_classes-1
     return label
 
 def decode(probability):
@@ -92,13 +96,15 @@ def compute_p(label_predict,y):
 
 def compute_performance(style,output,y,mode="train"):
     performance={}
+    num_classes=output.size(-1)
     if(style=="Classification"):
-        value_predict = decode(output)
+        # value_predict = decode(output)
         label_predict = torch.argmax(output, dim=1)
+        probability=output[range(len(output)),label_predict]
 
-        r2 = compute_r2(value_predict, y)
+        # r2 = compute_r2(value_predict, y)
         p = compute_p(label_predict, y)
-        performance[mode+"/r2"]=r2
+        # performance[mode+"/r2"]=r2
         performance[mode+"/p"]=p
 
     if(style=="Regression"):
@@ -107,6 +113,20 @@ def compute_performance(style,output,y,mode="train"):
         performance[mode+"/r2"]=r2
 
     return performance
+
+def compute_ap(predict_right, truth_right, score):
+    index=torch.argsort(score,descending=True)
+    predict_right=predict_right[index].float()
+    truth_right=truth_right[index].float()
+    total_pos = truth_right.sum()
+
+    p_denominator=torch.range(1,len(predict_right)+1,dtype=torch.float)
+    p_denominator=torch.cumsum(p_denominator,dim=0)
+
+    p_numerator=torch.cumsum(predict_right,dim=0)
+    p=(p_numerator/p_denominator)*(truth_right/total_pos)
+
+    return p.sum()
 
 class AverageMeter():
     def __init__(self):
@@ -129,5 +149,5 @@ class AverageMeter():
 
 
 if __name__=="__main__":
-    p=torch.randn(size=(2,30))
-    decode(p)
+    a=torch.range(0,10,dtype=torch.float)
+    print(a)

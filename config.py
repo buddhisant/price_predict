@@ -2,7 +2,7 @@
 samples_per_gpu = 128
 
 # 训练的epochs数量
-max_epochs = 30
+max_epochs = 6
 
 # 学习率
 lr=0.001
@@ -31,8 +31,8 @@ focal_loss_gamma = 2.0
 focal_loss_alpha = 0.25
 
 # 最大跌幅
-max_decline=-0.015
+max_decline=-0.002
 # 最大涨幅
-max_increase=0.015
+max_increase=0.002
 # 分类间隔
 interval=0.001

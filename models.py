@@ -62,6 +62,77 @@ class Classification(nn.Module):
         self.ln5 = nn.LayerNorm([40,12])
         self.bn5 = nn.BatchNorm1d(40)
 
+        self.linear=nn.Linear(480,7)
+
+        self.maxpool=nn.MaxPool1d(kernel_size=2,padding=1)
+        self.tanh=nn.Tanh()
+        self.act=self.tanh
+
+        # self.relu=nn.LeakyReLU(negative_slope=0.01,inplace=True)
+        self.dropout=nn.Dropout(p=0.1,inplace=False)
+        self.loss=ClassLoss()
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        for m in self.modules():
+            if(isinstance(m, torch.nn.Conv1d)):
+                torch.nn.init.orthogonal_(m.weight)
+                if (hasattr(m, "bias") and m.bias is not None):
+                    torch.nn.init.constant_(m.bias, 0)
+            elif (isinstance(m, torch.nn.Linear)):
+                torch.nn.init.orthogonal_(m.weight)
+                torch.nn.init.constant_(m.bias, 0)
+
+        bias_value = -math.log((1 - cfg.class_prior_prob) / cfg.class_prior_prob)
+        torch.nn.init.constant_(self.linear.bias,bias_value)
+
+    def forward(self,x,y):
+        x = self.act(self.dropout(self.conv1(x)))
+        x = self.maxpool(x)
+
+        x = self.act(self.dropout(self.conv2(x)))
+        x = self.maxpool(x)
+
+        x = self.act(self.dropout(self.conv3(x)))
+        x = self.maxpool(x)
+
+        x = self.act(self.dropout(self.conv4(x)))
+        x = self.maxpool(x)
+
+        x = self.act(self.dropout(self.conv5(x)))
+
+        x=x.flatten(1)
+        predict=self.linear(x)
+        predict.sigmoid_()
+
+        if self.is_train:
+            loss = self.loss(predict,y)
+            return loss, predict
+
+        return predict
+
+class Classification1(nn.Module):
+    def __init__(self,is_train=True):
+        super(Classification1, self).__init__()
+        self.is_train=is_train
+
+        self.conv1=nn.Conv1d(1,200,kernel_size=5,padding=2)
+        self.ln1=nn.LayerNorm([200,175])
+        self.bn1=nn.BatchNorm1d(200)
+        self.conv2=nn.Conv1d(200,150,kernel_size=5,padding=2)
+        self.ln2 = nn.LayerNorm([150,88])
+        self.bn2 = nn.BatchNorm1d(150)
+        self.conv3=nn.Conv1d(150,100,kernel_size=5,padding=2)
+        self.ln3 = nn.LayerNorm([100,45])
+        self.bn3 = nn.BatchNorm1d(100)
+        self.conv4=nn.Conv1d(100,60,kernel_size=3,padding=1)
+        self.ln4 = nn.LayerNorm([60,23])
+        self.bn4 = nn.BatchNorm1d(60)
+        self.conv5=nn.Conv1d(60,40,kernel_size=3,padding=1)
+        self.ln5 = nn.LayerNorm([40,12])
+        self.bn5 = nn.BatchNorm1d(40)
+
         self.linear=nn.Linear(40,30)
 
         self.maxpool=nn.MaxPool1d(kernel_size=2,padding=1)
@@ -205,6 +276,7 @@ class Regression(nn.Module):
                 torch.nn.init.constant_(m.bias, 0)
 
     def forward(self,x,label):
+        # [128,1,175]
         x = self.act(self.bn1(self.conv1(x)))
         x = self.maxpool(x)
 
@@ -218,8 +290,10 @@ class Regression(nn.Module):
         x = self.maxpool(x)
 
         x = self.act(self.bn5(self.conv5(x)))
+        # [128,40,12]
 
         x=x.mean(axis=-1)
+        # [128,40]
         y=self.linear(x)
 
         y=y.view(-1)

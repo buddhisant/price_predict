@@ -5,7 +5,7 @@ import argparse
 import torch
 import time
 import solver
-import p_model
+import models
 import test
 import config as cfg
 import torch.distributed as dist
@@ -13,7 +13,7 @@ import torch.distributed as dist
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Regression"):
+def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Classification"):
     if(torch.cuda.device_count()==0):
         device=torch.device("cpu")
     else:
@@ -24,7 +24,7 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Regression"):
     KYDataset=dataset.KYDataset(is_train=True,stack=stack,target=target)
     dataloader=dataset.make_dataLoader(KYDataset,cfg.samples_per_gpu,is_dist)
 
-    model=getattr(p_model,style)(is_train=True)
+    model=getattr(models, style)(is_train=True)
     if(start_epoch>1):
         utils.load_model(model,start_epoch-1)
     model=model.to(device)
@@ -85,7 +85,7 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Regression"):
 
         if (local_rank == 0):
             utils.save_model(model, epoch)
-            time.sleep(10)
+            time.sleep(5)
             # performance=test.test(epoch,stack=stack,target=target)
             # for k in performance:
             #     writer.add_scalar(k, performance[k].item(), epoch)
