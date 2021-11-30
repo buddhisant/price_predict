@@ -69,7 +69,7 @@ __global__ void transform_col2in_kernel(
 {
 /*
 n = batch_size * input_channels * kernel_size * length
-data_in [kernel_size, input_channels, length]
+data_in [batch_size, input_channels, length]
 data_col [kernel_size, input_channels, batch_size, length]
 topk_score [batch_size, length, kernel_size]
 topk_index [batch_size, length, kernel_size]
@@ -94,7 +94,7 @@ gradInput [batch_size, input_channels, length]
 
         const int cur_index = topk_index_ptr[kernel_index];
         const T cur_score = topk_score_ptr[kernel_index];
-        const T cur_feature = data_in + (batch_index * input_channels + channel_index) * length + cur_index;
+        const T cur_feature = data_in[(batch_index * input_channels + channel_index) * length + cur_index];
 
         T *location_attention = gradAttention_score + (batch_index * length + location_index) * length + cur_index;
         T *location_input = gradInput + (batch_index * input_channels + channel_index) * length + cur_index;
