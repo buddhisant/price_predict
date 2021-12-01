@@ -127,7 +127,7 @@ output [batch_size, output_channels, length]
     long num_kernels = batch_size * input_channels * length;
     const float* input_ = input.data_ptr<float>();
     const float* topk_score_ = topk_score.data_ptr<float>();
-    const long* topk_index_ = topk_index.data_ptr<float>();
+    const long* topk_index_ = topk_index.data_ptr<long>();
     float* columns_ = columns.data_ptr<float>();
 
     transform_in2col_kernel<<<GET_BLOCKS(num_kernels),THREADS_PER_BLOCK,0,at::cuda::getCurrentCUDAStream()>>>(
@@ -181,7 +181,7 @@ gradAttention_score [batch_size, length, length]
     const float* input_ = input.data_ptr<float>();
     const float* columns_ = columns.data_ptr<float>();
     const float* topk_score_ = topk_score.data_ptr<float>();
-    const long* topk_index_ = topk_index.data_ptr<float>();
+    const long* topk_index_ = topk_index.data_ptr<long>();
     float* gradAttention_score_ = gradAttention_score.data_ptr<float>();
     float* gradInput_ = gradInput.data_ptr<float>();
 
@@ -207,7 +207,7 @@ gradWeight [output_channels, kernel_size, input_channels]
     long input_channels = input.size(1);
     long length = input.size(2);
     long output_channels = gradOutput.size(1);
-    int kernel_size = weight.size(1);
+    int kernel_size = gradWeight.size(1);
 
     auto result = attention_score.topk(kernel_size);
     auto topk_score = std::get<0>(result);
