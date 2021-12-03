@@ -2,7 +2,7 @@
 samples_per_gpu = 128
 
 # 训练的epochs数量
-max_epochs = 6
+max_epochs = 30
 
 # 学习率
 lr=0.0001
