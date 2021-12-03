@@ -9,7 +9,7 @@ import pandas as pd
 
 from tqdm import tqdm
 
-def test(epoch,target=1,stack=1,style="Classification"):
+def test(epoch,target=1,stack=1,style="Regression"):
     if (torch.cuda.device_count() == 0):
         device = torch.device("cpu")
     else:

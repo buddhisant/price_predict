@@ -5,7 +5,7 @@ samples_per_gpu = 128
 max_epochs = 6
 
 # 学习率
-lr=0.001
+lr=0.0001
 
 # 基础weight_decay率
 weight_decay=0.0001

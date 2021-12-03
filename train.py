@@ -13,13 +13,13 @@ import torch.distributed as dist
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Classification"):
+def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Regression"):
     if(torch.cuda.device_count()==0):
         device=torch.device("cpu")
     else:
         device=torch.device("cuda:"+str(local_rank))
     if(local_rank==0):
-        writer = SummaryWriter(log_dir="runs/s{}_target{}_relu_bn_smoothL1".format(stack,target))
+        writer = SummaryWriter(log_dir="runs/s{}_target{}_rms".format(stack,target))
 
     KYDataset=dataset.KYDataset(is_train=True,stack=stack,target=target)
     dataloader=dataset.make_dataLoader(KYDataset,cfg.samples_per_gpu,is_dist)
@@ -97,8 +97,9 @@ def main():
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--start_epoch", type=int, default=1)
     parser.add_argument("--target",type=int,default=1)
-    parser.add_argument("--style",type=str,default="Classification")
+    parser.add_argument("--style",type=str,default="Regression")
     parser.add_argument("--dist", action="store_true", default=False)
+
 
     args = parser.parse_args()
     if (args.dist):

@@ -14,7 +14,7 @@ class KYDataset(Dataset):
     def __init__(self,is_train=True,target=1,stack=1):
         self.is_train=is_train
 
-        df = pd.read_csv(os.path.join("data", "train_{}.csv".format(stack)), index_col=0)
+        df = pd.read_csv(os.path.join("data", "test_{}.csv".format(stack)), index_col=0)
         df = df.drop(["target1","target2","target3"]+self.non_factor,axis=1)
         df = df.values
         df = torch.tensor(df,dtype=torch.float)
@@ -22,7 +22,7 @@ class KYDataset(Dataset):
         self.std=df.std(axis=0).view(1,-1)
 
         if(self.is_train):
-            df=pd.read_csv(os.path.join("data","train_{}.csv".format(stack)),index_col=0)
+            df=pd.read_csv(os.path.join("data","test_{}.csv".format(stack)),index_col=0)
         else:
             df=pd.read_csv(os.path.join("data","test_{}.csv".format(stack)),index_col=0)
 
