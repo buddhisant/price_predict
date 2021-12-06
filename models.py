@@ -277,19 +277,19 @@ class Regression(nn.Module):
 
     def forward(self,x,label):
         # [128,1,175]
-        x = self.act(self.bn1(self.conv1(x)))
+        x = self.act(self.dropout(self.conv1(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.bn2(self.conv2(x)))
+        x = self.act(self.dropout(self.conv2(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.bn3(self.conv3(x)))
+        x = self.act(self.dropout(self.conv3(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.bn4(self.conv4(x)))
+        x = self.act(self.dropout(self.conv4(x)))
         x = self.maxpool(x)
 
-        x = self.act(self.bn5(self.conv5(x)))
+        x = self.act(self.dropout(self.conv5(x)))
         # [128,40,12]
 
         x=x.mean(axis=-1)

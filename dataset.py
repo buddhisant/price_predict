@@ -5,9 +5,6 @@ import pandas as pd
 from torch import nn
 from torch.utils.data import Dataset,distributed,DataLoader
 
-root_path="/home/buddhisant/data/datafeatures"
-name1="000001.sz_intern_20200101-20210329.h5"
-
 class KYDataset(Dataset):
     non_factor=["ChgToPreClose","Match","AskPrice1","BidPrice1","Volume","Turnover"]
 

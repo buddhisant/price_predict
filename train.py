@@ -13,16 +13,17 @@ import torch.distributed as dist
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Classification"):
+def train(is_dist,start_epoch,local_rank,target=1,stack=63,style="Regression"):
     if(torch.cuda.device_count()==0):
         device=torch.device("cpu")
     else:
         device=torch.device("cuda:"+str(local_rank))
     if(local_rank==0):
-        writer = SummaryWriter(log_dir="runs/s{}_target{}_relu_bn_smoothL1".format(stack,target))
+        writer = SummaryWriter(log_dir="runs/s{}_target{}_relu".format(stack,target))
 
-    KYDataset=dataset.KYDataset(is_train=True,stack=stack,target=target)
-    dataloader=dataset.make_dataLoader(KYDataset,cfg.samples_per_gpu,is_dist)
+    Train_Dataset=dataset.KYDataset(is_train=True,stack=stack,target=target)
+    Test_Dataset=dataset.KYDataset(is_train=False,stack=stack,target=target)
+    dataloader=dataset.make_dataLoader(Train_Dataset,cfg.samples_per_gpu,is_dist)
 
     model=getattr(models, style)(is_train=True)
     if(start_epoch>1):
@@ -38,14 +39,12 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Classification"
     model.train()
 
     for epoch in range(1,cfg.max_epochs+1):
-
         if is_dist:
             dataloader.sampler.set_epoch(epoch)
 
         end_time = time.time()
 
         for iteration,datas in enumerate(dataloader,1):
-
             x = datas[0].to(device)
             y = datas[1].to(device)
             loss, output=model(x,y)
@@ -85,10 +84,13 @@ def train(is_dist,start_epoch,local_rank,target=1,stack=1,style="Classification"
 
         if (local_rank == 0):
             utils.save_model(model, epoch)
-            time.sleep(5)
-            # performance=test.test(epoch,stack=stack,target=target)
-            # for k in performance:
-            #     writer.add_scalar(k, performance[k].item(), epoch)
+            time.sleep(10)
+            performance=test.test(epoch,Train_Dataset,dataset_name="validation")
+            for k in performance:
+                writer.add_scalar(k, performance[k].item(), epoch)
+            performance = test.test(epoch, Test_Dataset, dataset_name="test")
+            for k in performance:
+                writer.add_scalar(k, performance[k].item(), epoch)
         if (is_dist):
             utils.synchronize()
 
@@ -97,8 +99,9 @@ def main():
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--start_epoch", type=int, default=1)
     parser.add_argument("--target",type=int,default=1)
-    parser.add_argument("--style",type=str,default="Classification")
+    parser.add_argument("--style",type=str,default="Regression")
     parser.add_argument("--dist", action="store_true", default=False)
+
 
     args = parser.parse_args()
     if (args.dist):
