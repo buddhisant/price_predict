@@ -258,7 +258,7 @@ class Regression(nn.Module):
         self.avgpool=nn.AvgPool1d(kernel_size=2,)
         self.tanh=nn.Tanh()
         self.relu=nn.ReLU()
-        self.act=self.tanh
+        self.act=self.relu
 
         # self.relu=nn.LeakyReLU(negative_slope=0.01,inplace=True)
         self.dropout=nn.Dropout(p=0.1,inplace=False)

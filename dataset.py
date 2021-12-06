@@ -5,16 +5,13 @@ import pandas as pd
 from torch import nn
 from torch.utils.data import Dataset,distributed,DataLoader
 
-root_path="/home/buddhisant/data/datafeatures"
-name1="000001.sz_intern_20200101-20210329.h5"
-
 class KYDataset(Dataset):
     non_factor=["ChgToPreClose","Match","AskPrice1","BidPrice1","Volume","Turnover"]
 
     def __init__(self,is_train=True,target=1,stack=1):
         self.is_train=is_train
 
-        df = pd.read_csv(os.path.join("data", "test_{}.csv".format(stack)), index_col=0)
+        df = pd.read_csv(os.path.join("data", "train_{}.csv".format(stack)), index_col=0)
         df = df.drop(["target1","target2","target3"]+self.non_factor,axis=1)
         df = df.values
         df = torch.tensor(df,dtype=torch.float)
@@ -22,7 +19,7 @@ class KYDataset(Dataset):
         self.std=df.std(axis=0).view(1,-1)
 
         if(self.is_train):
-            df=pd.read_csv(os.path.join("data","test_{}.csv".format(stack)),index_col=0)
+            df=pd.read_csv(os.path.join("data","train_{}.csv".format(stack)),index_col=0)
         else:
             df=pd.read_csv(os.path.join("data","test_{}.csv".format(stack)),index_col=0)
 
